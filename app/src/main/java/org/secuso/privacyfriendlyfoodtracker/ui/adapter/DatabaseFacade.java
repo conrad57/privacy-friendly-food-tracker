@@ -26,6 +26,8 @@ import org.secuso.privacyfriendlyfoodtracker.database.ConsumedEntries;
 import org.secuso.privacyfriendlyfoodtracker.database.ConsumedEntriesDao;
 import org.secuso.privacyfriendlyfoodtracker.database.Product;
 import org.secuso.privacyfriendlyfoodtracker.database.ProductDao;
+import org.secuso.privacyfriendlyfoodtracker.ui.BaseAddFoodActivity;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +56,14 @@ public class DatabaseFacade {
      * @param date the consumption date in UNIX format
      * @param name the name
      * @param productId the consumed product id
+     * @param referenceActivity the BaseFoodActivity from the AddFoodFragment, that calls this
+     *                          method. Needed to avoid a a race condition which occured, when
+     *                          insertEntry did not yet finish, but BaseAddFoodActivity's finish()
+     *                          already got called - resulting in the latest consumed food not showing
+     *                          in the OverviewActivity.
+     *
      */
-    public void insertEntry(final int amount, final java.util.Date date, final String name, final float energy, final int productId){
+    public void insertEntry(final int amount, final java.util.Date date, final String name, final float energy, final int productId, final BaseAddFoodActivity referenceActivity){
         Executors.newSingleThreadExecutor().execute(new Runnable() {
             @Override
             public void run() {
@@ -72,6 +80,7 @@ public class DatabaseFacade {
                     existingProductId = productId;
                 }
                 consumedEntriesDao.insert(new ConsumedEntries(0, amount, new java.sql.Date(date.getTime()), name, existingProductId));
+                referenceActivity.finish();
             }
         });
     }
